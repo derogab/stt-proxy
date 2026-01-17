@@ -1,0 +1,24 @@
+{
+  "name": "stt-proxy",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/derogab/tts-proxy.git"
+  },
+  "keywords": [
+    "TTS",
+    "proxy",
+    "gateway"
+  ],
+  "author": "derogab",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/derogab/tts-proxy/issues"
+  },
+  "homepage": "https://github.com/derogab/tts-proxy#readme"
+}
