@@ -13,15 +13,20 @@ const TEST_MODEL_DIR = path.join(__dirname, 'models');
 const TEST_AUDIO_DIR = path.join(__dirname, 'audio');
 const MODEL_NAME = 'ggml-tiny.bin';
 const MODEL_PATH = path.join(TEST_MODEL_DIR, MODEL_NAME);
-const AUDIO_FILE = path.join(TEST_AUDIO_DIR, 'test.wav');
+const AUDIO_FILE = path.join(TEST_AUDIO_DIR, 'jfk.wav');
 
 const MODEL_URL = 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin';
-const SAMPLE_AUDIO_URL = 'https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav';
+const JFK_AUDIO_URL = 'https://github.com/ggerganov/whisper.cpp/raw/master/samples/jfk.wav';
 
 async function downloadFile(url, destPath, maxRedirects = 10) {
   return new Promise((resolve, reject) => {
     if (maxRedirects <= 0) {
       return reject(new Error('Too many redirects'));
+    }
+
+    const dir = path.dirname(destPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
 
     const protocol = url.startsWith('https') ? https : http;
@@ -52,15 +57,11 @@ async function downloadFile(url, destPath, maxRedirects = 10) {
   });
 }
 
+function normalizeTranscription(text) {
+  return text.toLowerCase().replace(/[.,!?]/g, '').trim();
+}
+
 async function setup() {
-  if (!fs.existsSync(TEST_MODEL_DIR)) {
-    fs.mkdirSync(TEST_MODEL_DIR, { recursive: true });
-  }
-
-  if (!fs.existsSync(TEST_AUDIO_DIR)) {
-    fs.mkdirSync(TEST_AUDIO_DIR, { recursive: true });
-  }
-
   if (!fs.existsSync(MODEL_PATH) || fs.statSync(MODEL_PATH).size === 0) {
     if (fs.existsSync(MODEL_PATH)) fs.unlinkSync(MODEL_PATH);
     console.log(`Downloading Whisper tiny model to ${MODEL_PATH}...`);
@@ -71,8 +72,8 @@ async function setup() {
 
   if (!fs.existsSync(AUDIO_FILE) || fs.statSync(AUDIO_FILE).size === 0) {
     if (fs.existsSync(AUDIO_FILE)) fs.unlinkSync(AUDIO_FILE);
-    console.log(`Downloading sample audio to ${AUDIO_FILE}...`);
-    await downloadFile(SAMPLE_AUDIO_URL, AUDIO_FILE);
+    console.log(`Downloading JFK test audio to ${AUDIO_FILE}...`);
+    await downloadFile(JFK_AUDIO_URL, AUDIO_FILE);
     console.log('Audio downloaded successfully.');
   }
 }
@@ -98,9 +99,9 @@ async function runTests() {
 
   console.log('\n--- Running Whisper.cpp Integration Tests ---\n');
 
-  // Test 1: Basic transcription
+  // Test 1: Basic transcription with content verification
   try {
-    console.log('Test 1: Basic transcription from file');
+    console.log('Test 1: Transcribe JFK speech audio file');
     const { transcribe, freeWhisper } = await import('../dist/esm/index.js');
 
     const result = await transcribe(AUDIO_FILE);
@@ -113,19 +114,25 @@ async function runTests() {
       throw new Error('Transcription should not be empty');
     }
 
-    console.log(`  Transcribed: "${result.text.substring(0, 100)}..."`);
+    const normalizedResult = normalizeTranscription(result.text);
+
+    if (!normalizedResult.includes('ask not what your country can do for you')) {
+      throw new Error(`Transcription should contain JFK quote. Got: "${result.text}"`);
+    }
+
+    console.log(`  Transcribed: "${result.text}"`);
     console.log('  ✓ PASSED\n');
-    results.push({ name: 'Basic transcription', passed: true });
+    results.push({ name: 'Transcribe JFK speech audio file', passed: true });
 
     await freeWhisper();
   } catch (error) {
     console.log(`  ✗ FAILED: ${error.message}\n`);
-    results.push({ name: 'Basic transcription', passed: false, error: error.message });
+    results.push({ name: 'Transcribe JFK speech audio file', passed: false, error: error.message });
   }
 
-  // Test 2: Transcription from Buffer
+  // Test 2: Transcription from Buffer with content verification
   try {
-    console.log('Test 2: Transcription from Buffer');
+    console.log('Test 2: Transcribe audio from buffer');
     const { transcribeBuffer, freeWhisper } = await import('../dist/esm/index.js');
 
     const audioBuffer = fs.readFileSync(AUDIO_FILE);
@@ -139,14 +146,20 @@ async function runTests() {
       throw new Error('Transcription should not be empty');
     }
 
-    console.log(`  Transcribed: "${result.text.substring(0, 100)}..."`);
+    const normalizedResult = normalizeTranscription(result.text);
+
+    if (!normalizedResult.includes('ask not what your country can do for you')) {
+      throw new Error(`Transcription should contain JFK quote. Got: "${result.text}"`);
+    }
+
+    console.log(`  Transcribed: "${result.text}"`);
     console.log('  ✓ PASSED\n');
-    results.push({ name: 'Transcription from Buffer', passed: true });
+    results.push({ name: 'Transcribe audio from buffer', passed: true });
 
     await freeWhisper();
   } catch (error) {
     console.log(`  ✗ FAILED: ${error.message}\n`);
-    results.push({ name: 'Transcription from Buffer', passed: false, error: error.message });
+    results.push({ name: 'Transcribe audio from buffer', passed: false, error: error.message });
   }
 
   // Test 3: isWhisperConfigured
@@ -161,10 +174,10 @@ async function runTests() {
     }
 
     console.log('  ✓ PASSED\n');
-    results.push({ name: 'isWhisperConfigured', passed: true });
+    results.push({ name: 'isWhisperConfigured check', passed: true });
   } catch (error) {
     console.log(`  ✗ FAILED: ${error.message}\n`);
-    results.push({ name: 'isWhisperConfigured', passed: false, error: error.message });
+    results.push({ name: 'isWhisperConfigured check', passed: false, error: error.message });
   }
 
   // Test 4: Error handling for invalid model path
@@ -174,7 +187,6 @@ async function runTests() {
     const savedPath = process.env.WHISPER_CPP_MODEL_PATH;
     process.env.WHISPER_CPP_MODEL_PATH = '/invalid/path/model.bin';
 
-    // Need to reimport to get fresh state
     const module = await import('../dist/esm/index.js?v=' + Date.now());
 
     let errorThrown = false;
