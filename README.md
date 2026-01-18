@@ -127,9 +127,9 @@ _STT Proxy_ is made with ♥ by [derogab](https://github.com/derogab) and it's r
 </a>
 
 ## Tip
-If you like this project or directly benefit from it, please consider buying me a coffee:
-🔗 `bc1qd0qatgz8h62uvnr74utwncc6j5ckfz2v2g4lef`
-⚡️ `derogab@sats.mobi`
+If you like this project or directly benefit from it, please consider buying me a coffee:  
+🔗 `bc1qd0qatgz8h62uvnr74utwncc6j5ckfz2v2g4lef`  
+⚡️ `derogab@sats.mobi`  
 💶 [Sponsor on GitHub](https://github.com/sponsors/derogab)
 
 ## Stargazers over time
