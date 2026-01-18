@@ -53,18 +53,6 @@ jobs:
         with:
           path: test/audio
           key: test-audio-jfk-v1
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Cache Whisper model
-        uses: actions/cache@v4
-        with:
-          path: test/models
-          key: whisper-model-tiny-v1
-      - name: Cache test audio
-        uses: actions/cache@v4
-        with:
-          path: test/audio
-          key: test-audio-jfk-v1
       - name: Install dependencies (clean)
         run: npm ci
       - name: Type check
@@ -105,6 +93,18 @@ jobs:
           node-version: '20.x'
           cache: 'npm'
           registry-url: 'https://npm.pkg.github.com'
+      - name: Install FFmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Cache Whisper model
+        uses: actions/cache@v4
+        with:
+          path: test/models
+          key: whisper-model-tiny-v1
+      - name: Cache test audio
+        uses: actions/cache@v4
+        with:
+          path: test/audio
+          key: test-audio-jfk-v1
       - name: Install dependencies (clean)
         run: npm ci
       - name: Type check
@@ -125,7 +125,7 @@ jobs:
           fi
       - name: Show publish contents (dry run)
         run: npm pack --dry-run
-      - name: Publish to npm (with provenance)
+      - name: Publish to GitHub Packages (with provenance)
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_GITHUB_TOKEN }}
         run: npm publish --provenance --access public
