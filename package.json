@@ -1,24 +1,62 @@
 {
-  "name": "stt-proxy",
+  "name": "@derogab/stt-proxy",
   "version": "0.1.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A simple and lightweight proxy for seamless integration with multiple STT (Speech-to-Text) providers including Whisper.cpp",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude='**/*.integration.test.*'",
+    "test:whisper": "node --experimental-vm-modules ./test/whisper-cpp.integration.test.mjs",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit -p tsconfig.esm.json"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/derogab/tts-proxy.git"
+    "url": "git+https://github.com/derogab/stt-proxy.git"
   },
   "keywords": [
-    "TTS",
+    "STT",
+    "speech-to-text",
+    "transcription",
+    "whisper",
+    "whisper.cpp",
     "proxy",
     "gateway"
   ],
   "author": "derogab",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/derogab/tts-proxy/issues"
+    "url": "https://github.com/derogab/stt-proxy/issues"
   },
-  "homepage": "https://github.com/derogab/tts-proxy#readme"
+  "homepage": "https://github.com/derogab/stt-proxy#readme",
+  "dependencies": {
+    "dotenv": "16.5.0",
+    "smart-whisper": "0.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "@vitest/coverage-v8": "^3.1.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
 }
