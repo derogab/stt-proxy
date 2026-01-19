@@ -61,9 +61,6 @@ function normalizeTranscription(text: string): string {
 
 describe('whisper.cpp integration tests', () => {
   let transcribe: typeof import('../src/index.js').transcribe;
-  let transcribeBuffer: typeof import('../src/index.js').transcribeBuffer;
-  let isWhisperConfigured: typeof import('../src/index.js').isWhisperConfigured;
-  let freeWhisper: typeof import('../src/index.js').freeWhisper;
 
   beforeAll(async () => {
     // Download model if needed
@@ -89,16 +86,7 @@ describe('whisper.cpp integration tests', () => {
     // Import module
     const stt = await import('../src/index.js');
     transcribe = stt.transcribe;
-    transcribeBuffer = stt.transcribeBuffer;
-    isWhisperConfigured = stt.isWhisperConfigured;
-    freeWhisper = stt.freeWhisper;
   }, 600000); // 10 minute timeout for model download
-
-  afterAll(async () => {
-    if (freeWhisper) {
-      await freeWhisper();
-    }
-  });
 
   it('should transcribe JFK speech audio file', async () => {
     const result = await transcribe(AUDIO_FILE);
@@ -114,7 +102,7 @@ describe('whisper.cpp integration tests', () => {
 
   it('should transcribe audio from buffer', async () => {
     const audioBuffer = fs.readFileSync(AUDIO_FILE);
-    const result = await transcribeBuffer(audioBuffer);
+    const result = await transcribe(audioBuffer);
 
     expect(result).toBeDefined();
     expect(result.text).toBeDefined();
@@ -124,10 +112,6 @@ describe('whisper.cpp integration tests', () => {
     const normalizedResult = normalizeTranscription(result.text);
     expect(normalizedResult).toContain('ask not what your country can do for you');
   }, 300000); // 5 minute timeout
-
-  it('should return true for isWhisperConfigured', () => {
-    expect(isWhisperConfigured()).toBe(true);
-  });
 
   it('should throw error for non-existent audio file', async () => {
     await expect(transcribe('/non/existent/audio.wav')).rejects.toThrow('Audio file not found');

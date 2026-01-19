@@ -42,10 +42,10 @@ curl -L -o ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/ma
 
 ### `transcribe(audio: string | Buffer, options?): Promise<TranscribeOutput>`
 
-Transcribes audio to text using the configured STT provider.
+Transcribes audio to text using the configured STT provider. The package automatically manages provider initialization and cleanup.
 
 **Parameters:**
-- `audio`: Path to audio file or audio Buffer
+- `audio`: Path to audio file (string) or audio Buffer
 - `options` (optional): Transcription options
 
 **Returns:**
@@ -66,25 +66,24 @@ type TranscribeOutput = {
 };
 ```
 
-### `transcribeBuffer(buffer: Buffer, options?): Promise<TranscribeOutput>`
+**Example:**
+```typescript
+// Transcribe from file path
+const result1 = await transcribe('/path/to/audio.wav');
+console.log(result1.text);
 
-Transcribes audio from a Buffer.
+// Transcribe from Buffer
+const audioBuffer = fs.readFileSync('/path/to/audio.wav');
+const result2 = await transcribe(audioBuffer);
+console.log(result2.text);
 
-### `isWhisperConfigured(): boolean`
-
-Check if Whisper.cpp is configured and ready.
-
-### `freeWhisper(): Promise<void>`
-
-Release Whisper instance and free memory.
-
-### `getAvailableModels(): string[]`
-
-Get list of available Whisper model names.
-
-### `getModelUrl(model: string): string`
-
-Get HuggingFace download URL for a model.
+// With options
+const result3 = await transcribe('/path/to/audio.wav', {
+  language: 'en',
+  translate: false
+});
+console.log(result3.text);
+```
 
 ## Provider Priority
 
