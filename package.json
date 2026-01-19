@@ -1,6 +1,6 @@
 {
   "name": "@derogab/stt-proxy",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A simple and lightweight proxy for seamless integration with multiple STT (Speech-to-Text) providers including Whisper.cpp",
   "type": "module",
   "main": "./dist/cjs/index.js",
