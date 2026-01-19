@@ -79,6 +79,35 @@ describe('stt-proxy', () => {
         'Whisper model not found at path'
       );
     });
+
+    it('should successfully transcribe audio file', async () => {
+      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
+      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      const { transcribe } = await import('../src/index.js');
+
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result).toBeDefined();
+      expect(result.text).toBe('Hello, world!');
+    });
+
+    it('should successfully transcribe audio from buffer', async () => {
+      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
+      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      const { transcribe } = await import('../src/index.js');
+
+      const audioBuffer = Buffer.from('fake audio data');
+      const result = await transcribe(audioBuffer);
+
+      expect(result).toBeDefined();
+      expect(result.text).toBe('Hello, world!');
+    });
   });
 
 
