@@ -18,6 +18,9 @@
       }
     }
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prepare": "npm run build",
     "build": "npm run build:cjs && npm run build:esm && npm run build:types",
