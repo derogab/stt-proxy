@@ -39,31 +39,19 @@ describe('stt-proxy', () => {
     vi.resetModules();
   });
 
-  describe('isWhisperConfigured', () => {
-    it('should return false when WHISPER_CPP_MODEL_PATH is not set', async () => {
-      const { isWhisperConfigured } = await import('../src/index.js');
-      expect(isWhisperConfigured()).toBe(false);
-    });
-
-    it('should return false when WHISPER_CPP_MODEL_PATH is set but file does not exist', async () => {
-      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      vi.mocked(fs.existsSync).mockReturnValue(false);
-      const { isWhisperConfigured } = await import('../src/index.js');
-      expect(isWhisperConfigured()).toBe(false);
-    });
-
-    it('should return true when WHISPER_CPP_MODEL_PATH is set and file exists', async () => {
-      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      const { isWhisperConfigured } = await import('../src/index.js');
-      expect(isWhisperConfigured()).toBe(true);
-    });
-  });
 
   describe('transcribe', () => {
-    it('should throw error when no provider is configured', async () => {
+    it('should throw error when no provider is configured (string path)', async () => {
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
+        'No STT provider configured'
+      );
+    });
+
+    it('should throw error when no provider is configured (Buffer)', async () => {
+      const { transcribe } = await import('../src/index.js');
+      const buffer = Buffer.from('test');
+      await expect(transcribe(buffer)).rejects.toThrow(
         'No STT provider configured'
       );
     });
@@ -91,82 +79,50 @@ describe('stt-proxy', () => {
         'Whisper model not found at path'
       );
     });
-  });
 
-  describe('getAvailableModels', () => {
-    it('should return list of available models', async () => {
-      const { getAvailableModels } = await import('../src/index.js');
-      const models = getAvailableModels();
-      expect(models).toContain('tiny');
-      expect(models).toContain('base');
-      expect(models).toContain('small');
-      expect(models).toContain('medium');
-      expect(models).toContain('large');
-      expect(models).toContain('large-v3-turbo');
-      expect(models.length).toBe(12);
+    it('should successfully transcribe audio file', async () => {
+      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
+      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      const { transcribe } = await import('../src/index.js');
+
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result).toBeDefined();
+      expect(result.text).toBe('Hello, world!');
+    });
+
+    it('should successfully transcribe audio from buffer', async () => {
+      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
+      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      const { transcribe } = await import('../src/index.js');
+
+      const audioBuffer = Buffer.from('fake audio data');
+      const result = await transcribe(audioBuffer);
+
+      expect(result).toBeDefined();
+      expect(result.text).toBe('Hello, world!');
     });
   });
 
-  describe('getModelUrl', () => {
-    it('should return correct HuggingFace URL for model', async () => {
-      const { getModelUrl } = await import('../src/index.js');
-      const url = getModelUrl('base');
-      expect(url).toBe('https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin');
-    });
 
-    it('should return correct URL for large-v3-turbo model', async () => {
-      const { getModelUrl } = await import('../src/index.js');
-      const url = getModelUrl('large-v3-turbo');
-      expect(url).toBe('https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin');
-    });
-  });
-
-  describe('freeWhisper', () => {
-    it('should not throw when called without active instance', async () => {
-      const { freeWhisper } = await import('../src/index.js');
-      await expect(freeWhisper()).resolves.not.toThrow();
-    });
-  });
-
-  describe('transcribeBuffer', () => {
-    it('should throw error when no provider is configured', async () => {
-      const { transcribeBuffer } = await import('../src/index.js');
-      const buffer = Buffer.from('test');
-      await expect(transcribeBuffer(buffer)).rejects.toThrow(
-        'No STT provider configured'
-      );
-    });
-  });
-
-  describe('type exports', () => {
+  describe('API exports', () => {
     it('should export transcribe function', async () => {
       const module = await import('../src/index.js');
       expect(typeof module.transcribe).toBe('function');
     });
 
-    it('should export transcribeBuffer function', async () => {
+    it('should only export transcribe function (no other functions)', async () => {
       const module = await import('../src/index.js');
-      expect(typeof module.transcribeBuffer).toBe('function');
-    });
-
-    it('should export isWhisperConfigured function', async () => {
-      const module = await import('../src/index.js');
-      expect(typeof module.isWhisperConfigured).toBe('function');
-    });
-
-    it('should export freeWhisper function', async () => {
-      const module = await import('../src/index.js');
-      expect(typeof module.freeWhisper).toBe('function');
-    });
-
-    it('should export getAvailableModels function', async () => {
-      const module = await import('../src/index.js');
-      expect(typeof module.getAvailableModels).toBe('function');
-    });
-
-    it('should export getModelUrl function', async () => {
-      const module = await import('../src/index.js');
-      expect(typeof module.getModelUrl).toBe('function');
+      const exportedFunctions = Object.keys(module).filter(
+        key => typeof module[key as keyof typeof module] === 'function'
+      );
+      expect(exportedFunctions).toEqual(['transcribe']);
     });
   });
 });

@@ -21,7 +21,7 @@ function getWhisperModelPath(): string | undefined {
   return process.env['WHISPER_CPP_MODEL_PATH'];
 }
 
-export function isWhisperConfigured(): boolean {
+function isWhisperConfigured(): boolean {
   const modelPath = getWhisperModelPath();
   return modelPath !== undefined && fs.existsSync(modelPath);
 }
@@ -124,7 +124,7 @@ export async function transcribe(audio: string | Buffer, options: TranscribeOpti
   throw new Error('No STT provider configured. Set WHISPER_CPP_MODEL_PATH environment variable.');
 }
 
-export async function transcribeBuffer(audioBuffer: Buffer, options: TranscribeOptions = {}): Promise<TranscribeOutput> {
+async function transcribeBuffer(audioBuffer: Buffer, options: TranscribeOptions = {}): Promise<TranscribeOutput> {
   const modelPath = getWhisperModelPath();
 
   if (!modelPath) {
@@ -146,7 +146,7 @@ export async function transcribeBuffer(audioBuffer: Buffer, options: TranscribeO
   }
 }
 
-export async function freeWhisper(): Promise<void> {
+async function freeWhisper(): Promise<void> {
   if (whisperInstance) {
     await whisperInstance.free();
     whisperInstance = null;
@@ -154,23 +154,21 @@ export async function freeWhisper(): Promise<void> {
   }
 }
 
-export function getAvailableModels(): string[] {
-  return [
-    'tiny',
-    'tiny.en',
-    'base',
-    'base.en',
-    'small',
-    'small.en',
-    'medium',
-    'medium.en',
-    'large',
-    'large-v2',
-    'large-v3',
-    'large-v3-turbo',
-  ];
-}
+// Automatically clean up Whisper instance on process exit
+process.on('exit', () => {
+  if (whisperInstance) {
+    // Note: Cannot use async operations in 'exit' handler
+    // The instance will be cleaned up by the process termination
+    whisperInstance = null;
+    currentModelPath = null;
+  }
+});
 
-export function getModelUrl(model: string): string {
-  return `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-${model}.bin`;
-}
+// Handle graceful shutdown signals
+const shutdownHandler = async () => {
+  await freeWhisper();
+  process.exit(0);
+};
+
+process.on('SIGINT', shutdownHandler);
+process.on('SIGTERM', shutdownHandler);
