@@ -108,8 +108,8 @@ async function transcribeWithWhisper(audioPath: string, options: TranscribeOptio
 
   const transcribeParams = {
     format: 'simple' as const,
-    ...(options.language && { language: options.language }),
-    ...(options.translate && { translate: options.translate }),
+    ...(options.language !== undefined && { language: options.language }),
+    ...(options.translate !== undefined && { translate: options.translate }),
   };
 
   const task = await whisper.transcribe(pcmData, transcribeParams);
