@@ -29,10 +29,33 @@ vi.mock('smart-whisper', () => ({
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
+// Helper functions
 function clearProviderEnvs() {
   delete process.env['WHISPER_CPP_MODEL_PATH'];
   delete process.env['CLOUDFLARE_ACCOUNT_ID'];
   delete process.env['CLOUDFLARE_AUTH_KEY'];
+}
+
+function setCloudflareEnvs() {
+  process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
+  process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
+}
+
+function mockCloudflareSuccess(text: string) {
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve({
+      success: true,
+      result: { text },
+    }),
+  });
+}
+
+function setupWhisperMocks() {
+  process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
+  vi.mocked(fs.existsSync).mockReturnValue(true);
+  const pcmData = new Float32Array([0.1, 0.2, 0.3]);
+  vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
 }
 
 describe('stt-proxy', () => {
@@ -50,8 +73,7 @@ describe('stt-proxy', () => {
     vi.resetModules();
   });
 
-
-  describe('transcribe', () => {
+  describe('No provider', () => {
     it('should throw error when no provider is configured (string path)', async () => {
       const { transcribe } = await import('../src/index.js');
       clearProviderEnvs();
@@ -68,7 +90,9 @@ describe('stt-proxy', () => {
         'No STT provider configured'
       );
     });
+  });
 
+  describe('Whisper.cpp provider', () => {
     it('should throw error when audio file does not exist', async () => {
       process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
       vi.mocked(fs.existsSync).mockImplementation((path) => {
@@ -81,12 +105,9 @@ describe('stt-proxy', () => {
       );
     });
 
-    it('should fall through to next provider when Whisper model file does not exist', async () => {
+    it('should fall through to next provider when model file does not exist', async () => {
       process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      vi.mocked(fs.existsSync).mockImplementation((path) => {
-        if (path === '/path/to/audio.wav') return true;
-        return false; // Model file doesn't exist
-      });
+      vi.mocked(fs.existsSync).mockReturnValue(false);
       const { transcribe } = await import('../src/index.js');
       clearProviderEnvs();
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
@@ -95,11 +116,7 @@ describe('stt-proxy', () => {
     });
 
     it('should successfully transcribe audio file', async () => {
-      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
-      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      setupWhisperMocks();
       const { transcribe } = await import('../src/index.js');
 
       const result = await transcribe('/path/to/audio.wav');
@@ -109,11 +126,7 @@ describe('stt-proxy', () => {
     });
 
     it('should successfully transcribe audio from buffer', async () => {
-      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      // Mock readFileSync to return a valid PCM buffer (Float32Array requires 4-byte aligned buffer)
-      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      setupWhisperMocks();
       const { transcribe } = await import('../src/index.js');
 
       const audioBuffer = Buffer.from('fake audio data');
@@ -126,19 +139,10 @@ describe('stt-proxy', () => {
 
   describe('Cloudflare provider', () => {
     it('should use Cloudflare when configured and Whisper.cpp is not', async () => {
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          result: { text: 'Cloudflare transcription' },
-        }),
-      });
+      mockCloudflareSuccess('Cloudflare transcription');
 
       const { transcribe } = await import('../src/index.js');
       const result = await transcribe('/path/to/audio.wav');
@@ -158,12 +162,9 @@ describe('stt-proxy', () => {
     });
 
     it('should throw error when Cloudflare API returns error status', async () => {
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
-
       mockFetch.mockResolvedValue({
         ok: false,
         status: 401,
@@ -178,12 +179,9 @@ describe('stt-proxy', () => {
     });
 
     it('should throw error when Cloudflare API returns unsuccessful response', async () => {
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
-
       mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({
@@ -199,9 +197,7 @@ describe('stt-proxy', () => {
     });
 
     it('should throw error when audio file does not exist for Cloudflare', async () => {
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(false);
 
       const { transcribe } = await import('../src/index.js');
@@ -211,19 +207,10 @@ describe('stt-proxy', () => {
     });
 
     it('should successfully transcribe audio from buffer using Cloudflare', async () => {
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          result: { text: 'Buffer transcription from Cloudflare' },
-        }),
-      });
+      mockCloudflareSuccess('Buffer transcription from Cloudflare');
 
       const { transcribe } = await import('../src/index.js');
       const audioBuffer = Buffer.from('fake audio data');
@@ -236,14 +223,8 @@ describe('stt-proxy', () => {
 
   describe('Provider priority', () => {
     it('should prefer Whisper.cpp over Cloudflare when both are configured', async () => {
-      // Configure both providers
-      process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
-      vi.mocked(fs.existsSync).mockReturnValue(true);
-      const pcmData = new Float32Array([0.1, 0.2, 0.3]);
-      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from(pcmData.buffer));
+      setupWhisperMocks();
+      setCloudflareEnvs();
 
       const { transcribe } = await import('../src/index.js');
       const result = await transcribe('/path/to/audio.wav');
@@ -255,24 +236,14 @@ describe('stt-proxy', () => {
     });
 
     it('should fall back to Cloudflare when Whisper.cpp model path is set but file does not exist', async () => {
-      // Whisper model path set but file doesn't exist
       process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/nonexistent/model.bin';
-      process.env['CLOUDFLARE_ACCOUNT_ID'] = 'test-account-id';
-      process.env['CLOUDFLARE_AUTH_KEY'] = 'test-auth-key';
-
+      setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockImplementation((path) => {
         if (path === '/path/to/nonexistent/model.bin') return false;
         return true; // Audio file exists
       });
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          result: { text: 'Cloudflare fallback' },
-        }),
-      });
+      mockCloudflareSuccess('Cloudflare fallback');
 
       const { transcribe } = await import('../src/index.js');
       const result = await transcribe('/path/to/audio.wav');
@@ -281,7 +252,6 @@ describe('stt-proxy', () => {
       expect(mockFetch).toHaveBeenCalled();
     });
   });
-
 
   describe('API exports', () => {
     it('should export transcribe function', async () => {
