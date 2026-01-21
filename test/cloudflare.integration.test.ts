@@ -1,5 +1,5 @@
 import { config as loadDotenv } from 'dotenv';
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as fs from 'fs';
 import { AUDIO_FILE, ensureAudioFile, normalizeTranscription } from './utils.js';
 
@@ -10,8 +10,12 @@ const isCloudflareConfigured = !!(process.env['CLOUDFLARE_ACCOUNT_ID'] && proces
 
 describe.skipIf(!isCloudflareConfigured)('Cloudflare integration tests', () => {
   let transcribe: typeof import('../src/index.js').transcribe;
+  let originalWhisperModelPath: string | undefined;
 
   beforeAll(async () => {
+    // Save original value to restore later
+    originalWhisperModelPath = process.env['WHISPER_CPP_MODEL_PATH'];
+
     // Ensure Whisper.cpp is not configured so Cloudflare is used
     delete process.env['WHISPER_CPP_MODEL_PATH'];
 
@@ -22,6 +26,13 @@ describe.skipIf(!isCloudflareConfigured)('Cloudflare integration tests', () => {
     const stt = await import('../src/index.js');
     transcribe = stt.transcribe;
   }, 60000); // 1 minute timeout for audio download
+
+  afterAll(() => {
+    // Restore original value
+    if (originalWhisperModelPath !== undefined) {
+      process.env['WHISPER_CPP_MODEL_PATH'] = originalWhisperModelPath;
+    }
+  });
 
   it('should transcribe JFK speech audio file via Cloudflare', async () => {
     const result = await transcribe(AUDIO_FILE);

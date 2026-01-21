@@ -126,7 +126,7 @@ function isCloudflareConfigured(): boolean {
   return !!(process.env['CLOUDFLARE_ACCOUNT_ID'] && process.env['CLOUDFLARE_AUTH_KEY']);
 }
 
-async function transcribeWithCloudflare(audioPath: string): Promise<TranscribeOutput> {
+async function transcribeWithCloudflare(audioPath: string, options: TranscribeOptions = {}): Promise<TranscribeOutput> {
   if (!fs.existsSync(audioPath)) {
     throw new Error(`Audio file not found: ${audioPath}`);
   }
@@ -149,8 +149,9 @@ async function transcribeWithCloudflare(audioPath: string): Promise<TranscribeOu
     },
     body: JSON.stringify({
       audio: audioBuffer.toString('base64'),
-      task: 'transcribe',
+      task: options.translate ? 'translate' : 'transcribe',
       vad_filter: true,
+      ...(options.language && { language: options.language }),
     }),
   });
 
@@ -206,7 +207,7 @@ function selectProvider(): Provider {
 
 async function transcribeFromPath(audioPath: string, options: TranscribeOptions, provider: Provider): Promise<TranscribeOutput> {
   if (provider === 'cloudflare') {
-    return transcribeWithCloudflare(audioPath);
+    return transcribeWithCloudflare(audioPath, options);
   }
   return transcribeWithWhisper(audioPath, options);
 }

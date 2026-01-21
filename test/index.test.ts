@@ -109,8 +109,8 @@ describe('stt-proxy', () => {
     it('should fall through to next provider when model file does not exist', async () => {
       process.env['WHISPER_CPP_MODEL_PATH'] = '/path/to/model.bin';
       vi.mocked(fs.existsSync).mockReturnValue(false);
+
       const { transcribe } = await import('../src/index.js');
-      clearProviderEnvs();
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
         'No STT provider configured'
       );
@@ -294,9 +294,8 @@ describe('stt-proxy', () => {
     });
 
     it('should throw error when PROVIDER is whisper.cpp but not configured', async () => {
-      process.env['PROVIDER'] = 'whisper.cpp';
       clearProviderEnvs();
-      process.env['PROVIDER'] = 'whisper.cpp'; // Re-set after clear
+      process.env['PROVIDER'] = 'whisper.cpp';
 
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
@@ -305,9 +304,8 @@ describe('stt-proxy', () => {
     });
 
     it('should throw error when PROVIDER is cloudflare but not configured', async () => {
-      process.env['PROVIDER'] = 'cloudflare';
       clearProviderEnvs();
-      process.env['PROVIDER'] = 'cloudflare'; // Re-set after clear
+      process.env['PROVIDER'] = 'cloudflare';
 
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
