@@ -31,6 +31,7 @@ vi.stubGlobal('fetch', mockFetch);
 
 // Helper functions
 function clearProviderEnvs() {
+  delete process.env['PROVIDER'];
   delete process.env['WHISPER_CPP_MODEL_PATH'];
   delete process.env['CLOUDFLARE_ACCOUNT_ID'];
   delete process.env['CLOUDFLARE_AUTH_KEY'];
@@ -250,6 +251,77 @@ describe('stt-proxy', () => {
 
       expect(result.text).toBe('Cloudflare fallback');
       expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+
+  describe('Explicit PROVIDER selection', () => {
+    it('should use whisper.cpp when PROVIDER is set to whisper.cpp', async () => {
+      process.env['PROVIDER'] = 'whisper.cpp';
+      setupWhisperMocks();
+      setCloudflareEnvs();
+
+      const { transcribe } = await import('../src/index.js');
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result.text).toBe('Hello, world!');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should use cloudflare when PROVIDER is set to cloudflare', async () => {
+      process.env['PROVIDER'] = 'cloudflare';
+      setupWhisperMocks();
+      setCloudflareEnvs();
+      mockCloudflareSuccess('Cloudflare explicit');
+
+      const { transcribe } = await import('../src/index.js');
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result.text).toBe('Cloudflare explicit');
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should be case-insensitive for PROVIDER value', async () => {
+      process.env['PROVIDER'] = 'CLOUDFLARE';
+      setCloudflareEnvs();
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
+      mockCloudflareSuccess('Case insensitive');
+
+      const { transcribe } = await import('../src/index.js');
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result.text).toBe('Case insensitive');
+    });
+
+    it('should throw error when PROVIDER is whisper.cpp but not configured', async () => {
+      process.env['PROVIDER'] = 'whisper.cpp';
+      clearProviderEnvs();
+      process.env['PROVIDER'] = 'whisper.cpp'; // Re-set after clear
+
+      const { transcribe } = await import('../src/index.js');
+      await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
+        "PROVIDER is set to 'whisper.cpp' but WHISPER_CPP_MODEL_PATH is not configured"
+      );
+    });
+
+    it('should throw error when PROVIDER is cloudflare but not configured', async () => {
+      process.env['PROVIDER'] = 'cloudflare';
+      clearProviderEnvs();
+      process.env['PROVIDER'] = 'cloudflare'; // Re-set after clear
+
+      const { transcribe } = await import('../src/index.js');
+      await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
+        "PROVIDER is set to 'cloudflare' but CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY are not configured"
+      );
+    });
+
+    it('should throw error for unknown provider', async () => {
+      process.env['PROVIDER'] = 'unknown';
+
+      const { transcribe } = await import('../src/index.js');
+      await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
+        'Unknown provider: unknown. Valid providers are: whisper.cpp, cloudflare'
+      );
     });
   });
 

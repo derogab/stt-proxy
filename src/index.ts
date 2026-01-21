@@ -173,7 +173,36 @@ async function transcribeWithCloudflare(audioPath: string): Promise<TranscribeOu
 // Main transcribe function
 // ============================================================================
 
-type Provider = 'whisper' | 'cloudflare';
+type Provider = 'whisper.cpp' | 'cloudflare';
+
+function selectProvider(): Provider {
+  // Check for explicit provider selection
+  const explicitProvider = process.env['PROVIDER']?.toLowerCase();
+
+  if (explicitProvider) {
+    // Validate explicit provider configuration
+    switch (explicitProvider) {
+      case 'whisper.cpp':
+        if (!isWhisperConfigured()) {
+          throw new Error("PROVIDER is set to 'whisper.cpp' but WHISPER_CPP_MODEL_PATH is not configured or model file does not exist.");
+        }
+        return 'whisper.cpp';
+      case 'cloudflare':
+        if (!isCloudflareConfigured()) {
+          throw new Error("PROVIDER is set to 'cloudflare' but CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY are not configured.");
+        }
+        return 'cloudflare';
+      default:
+        throw new Error(`Unknown provider: ${explicitProvider}. Valid providers are: whisper.cpp, cloudflare`);
+    }
+  }
+
+  // Auto-detection priority: whisper.cpp > cloudflare
+  if (isWhisperConfigured()) return 'whisper.cpp';
+  if (isCloudflareConfigured()) return 'cloudflare';
+
+  throw new Error('No STT provider configured. Set WHISPER_CPP_MODEL_PATH or CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY environment variables.');
+}
 
 async function transcribeFromPath(audioPath: string, options: TranscribeOptions, provider: Provider): Promise<TranscribeOutput> {
   if (provider === 'cloudflare') {
@@ -196,23 +225,11 @@ async function transcribeFromBuffer(audioBuffer: Buffer, options: TranscribeOpti
 }
 
 export async function transcribe(audio: string | Buffer, options: TranscribeOptions = {}): Promise<TranscribeOutput> {
-  // Provider selection priority:
-  // 1. Whisper.cpp (local, highest priority)
-  // 2. Cloudflare
+  const provider = selectProvider();
 
-  if (isWhisperConfigured()) {
-    return Buffer.isBuffer(audio)
-      ? transcribeFromBuffer(audio, options, 'whisper')
-      : transcribeFromPath(audio, options, 'whisper');
-  }
-
-  if (isCloudflareConfigured()) {
-    return Buffer.isBuffer(audio)
-      ? transcribeFromBuffer(audio, options, 'cloudflare')
-      : transcribeFromPath(audio, options, 'cloudflare');
-  }
-
-  throw new Error('No STT provider configured. Set WHISPER_CPP_MODEL_PATH or CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY environment variables.');
+  return Buffer.isBuffer(audio)
+    ? transcribeFromBuffer(audio, options, provider)
+    : transcribeFromPath(audio, options, provider);
 }
 
 // ============================================================================
