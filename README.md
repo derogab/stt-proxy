@@ -1,5 +1,5 @@
 # stt-proxy
-A simple and lightweight proxy for seamless integration with multiple STT providers including Whisper.cpp.
+A simple and lightweight proxy for seamless integration with multiple STT providers including Whisper.cpp and Cloudflare AI.
 
 ## Features
 
@@ -28,6 +28,13 @@ console.log(result.text);
 The package automatically detects which STT provider to use based on your environment variables.
 Configure one or more providers:
 
+### Provider Selection
+```bash
+PROVIDER=cloudflare # Optional, force a specific provider (whisper.cpp, cloudflare)
+```
+
+When `PROVIDER` is set, the specified provider will be used and an error is thrown if its credentials are not configured. When not set, providers are selected automatically based on priority.
+
 ### Whisper.cpp (Local)
 ```bash
 WHISPER_CPP_MODEL_PATH=/path/to/ggml-base.bin # Required, path to your GGML model file
@@ -37,6 +44,14 @@ Download models from [HuggingFace](https://huggingface.co/ggerganov/whisper.cpp/
 ```bash
 curl -L -o ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
 ```
+
+### Cloudflare AI
+```bash
+CLOUDFLARE_ACCOUNT_ID=your-account-id # Required
+CLOUDFLARE_AUTH_KEY=your-api-token    # Required
+```
+
+Uses the `@cf/openai/whisper-large-v3-turbo` model.
 
 ## API Reference
 
@@ -87,14 +102,17 @@ console.log(result3.text);
 
 ## Provider Priority
 
-The package selects providers in the following order:
-1. **Whisper.cpp** (if `WHISPER_CPP_MODEL_PATH` is set)
+When `PROVIDER` environment variable is set, that provider is used directly.
+
+Otherwise, the package selects providers in the following order:
+1. **Whisper.cpp** (if `WHISPER_CPP_MODEL_PATH` is set and file exists)
+2. **Cloudflare AI** (if `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AUTH_KEY` are set)
 
 If no providers are configured, the function throws an error.
 
 ## Requirements
 
-- **FFmpeg**: Required for audio conversion.
+- **FFmpeg**: Required for audio conversion (Whisper.cpp only).
   ```bash
   # macOS
   brew install ffmpeg
@@ -114,6 +132,9 @@ npm install
 
 # Build the package
 npm run build
+
+# Run tests
+npm test
 ```
 
 ## Credits
