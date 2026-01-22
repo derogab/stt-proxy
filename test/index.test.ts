@@ -291,6 +291,7 @@ describe('stt-proxy', () => {
       const result = await transcribe('/path/to/audio.wav');
 
       expect(result.text).toBe('Case insensitive');
+      expect(mockFetch).toHaveBeenCalled();
     });
 
     it('should throw error when PROVIDER is whisper.cpp but not configured', async () => {

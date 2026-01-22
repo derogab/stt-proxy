@@ -40,7 +40,11 @@ export async function downloadFile(url: string, destPath: string, maxRedirects =
           resolve();
         });
         file.on('error', (err) => {
-          fs.unlinkSync(destPath);
+          try {
+            fs.unlinkSync(destPath);
+          } catch {
+            // Ignore cleanup errors to ensure original error is rejected
+          }
           reject(err);
         });
       } else {

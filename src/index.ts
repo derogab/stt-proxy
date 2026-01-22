@@ -162,7 +162,7 @@ async function transcribeWithCloudflare(audioPath: string, options: TranscribeOp
 
   const data = await response.json() as CloudflareResponse;
 
-  if (!data.success || !data.result) {
+  if (!data.success || !data.result?.text) {
     const errorMessage = data.errors?.[0]?.message || 'Unknown Cloudflare API error';
     throw new Error(`Cloudflare transcription failed: ${errorMessage}`);
   }
