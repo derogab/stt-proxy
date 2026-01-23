@@ -31,6 +31,7 @@ vi.stubGlobal('fetch', mockFetch);
 
 // Helper functions
 function clearProviderEnvs() {
+  delete process.env['STT_PROVIDER'];
   delete process.env['PROVIDER'];
   delete process.env['WHISPER_CPP_MODEL_PATH'];
   delete process.env['CLOUDFLARE_ACCOUNT_ID'];
@@ -254,9 +255,9 @@ describe('stt-proxy', () => {
     });
   });
 
-  describe('Explicit PROVIDER selection', () => {
-    it('should use whisper.cpp when PROVIDER is set to whisper.cpp', async () => {
-      process.env['PROVIDER'] = 'whisper.cpp';
+  describe('Explicit STT_PROVIDER selection', () => {
+    it('should use whisper.cpp when STT_PROVIDER is set to whisper.cpp', async () => {
+      process.env['STT_PROVIDER'] = 'whisper.cpp';
       setupWhisperMocks();
       setCloudflareEnvs();
 
@@ -267,8 +268,8 @@ describe('stt-proxy', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should use cloudflare when PROVIDER is set to cloudflare', async () => {
-      process.env['PROVIDER'] = 'cloudflare';
+    it('should use cloudflare when STT_PROVIDER is set to cloudflare', async () => {
+      process.env['STT_PROVIDER'] = 'cloudflare';
       setupWhisperMocks();
       setCloudflareEnvs();
       mockCloudflareSuccess('Cloudflare explicit');
@@ -280,8 +281,8 @@ describe('stt-proxy', () => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
-    it('should be case-insensitive for PROVIDER value', async () => {
-      process.env['PROVIDER'] = 'CLOUDFLARE';
+    it('should be case-insensitive for STT_PROVIDER value', async () => {
+      process.env['STT_PROVIDER'] = 'CLOUDFLARE';
       setCloudflareEnvs();
       vi.mocked(fs.existsSync).mockReturnValue(true);
       vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
@@ -294,33 +295,61 @@ describe('stt-proxy', () => {
       expect(mockFetch).toHaveBeenCalled();
     });
 
-    it('should throw error when PROVIDER is whisper.cpp but not configured', async () => {
+    it('should throw error when STT_PROVIDER is whisper.cpp but not configured', async () => {
       clearProviderEnvs();
-      process.env['PROVIDER'] = 'whisper.cpp';
+      process.env['STT_PROVIDER'] = 'whisper.cpp';
 
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
-        "PROVIDER is set to 'whisper.cpp' but WHISPER_CPP_MODEL_PATH is not configured"
+        "STT_PROVIDER is set to 'whisper.cpp' but WHISPER_CPP_MODEL_PATH is not configured"
       );
     });
 
-    it('should throw error when PROVIDER is cloudflare but not configured', async () => {
+    it('should throw error when STT_PROVIDER is cloudflare but not configured', async () => {
       clearProviderEnvs();
-      process.env['PROVIDER'] = 'cloudflare';
+      process.env['STT_PROVIDER'] = 'cloudflare';
 
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
-        "PROVIDER is set to 'cloudflare' but CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY are not configured"
+        "STT_PROVIDER is set to 'cloudflare' but CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_AUTH_KEY are not configured"
       );
     });
 
     it('should throw error for unknown provider', async () => {
-      process.env['PROVIDER'] = 'unknown';
+      process.env['STT_PROVIDER'] = 'unknown';
 
       const { transcribe } = await import('../src/index.js');
       await expect(transcribe('/path/to/audio.wav')).rejects.toThrow(
         'Unknown provider: unknown. Valid providers are: whisper.cpp, cloudflare'
       );
+    });
+
+    it('should use PROVIDER as fallback when STT_PROVIDER is not set', async () => {
+      process.env['PROVIDER'] = 'cloudflare';
+      setCloudflareEnvs();
+      vi.mocked(fs.existsSync).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(Buffer.from('fake audio data'));
+      mockCloudflareSuccess('Provider fallback');
+
+      const { transcribe } = await import('../src/index.js');
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result.text).toBe('Provider fallback');
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should prioritize STT_PROVIDER over PROVIDER', async () => {
+      process.env['STT_PROVIDER'] = 'cloudflare';
+      process.env['PROVIDER'] = 'whisper.cpp';
+      setupWhisperMocks();
+      setCloudflareEnvs();
+      mockCloudflareSuccess('STT_PROVIDER wins');
+
+      const { transcribe } = await import('../src/index.js');
+      const result = await transcribe('/path/to/audio.wav');
+
+      expect(result.text).toBe('STT_PROVIDER wins');
+      expect(mockFetch).toHaveBeenCalled();
     });
   });
 

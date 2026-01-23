@@ -30,10 +30,12 @@ Configure one or more providers:
 
 ### Provider Selection
 ```bash
-PROVIDER=cloudflare # Optional, force a specific provider (whisper.cpp, cloudflare)
+STT_PROVIDER=cloudflare # Optional, force a specific provider (whisper.cpp, cloudflare)
 ```
 
-When `PROVIDER` is set, the specified provider will be used and an error is thrown if its credentials are not configured. When not set, providers are selected automatically based on priority.
+When `STT_PROVIDER` is set, the specified provider will be used and an error is thrown if its credentials are not configured. When not set, providers are selected automatically based on priority.
+
+> **Note:** `PROVIDER` is supported as a fallback for backward compatibility when `STT_PROVIDER` is not set.
 
 ### Whisper.cpp (Local)
 ```bash
@@ -102,7 +104,7 @@ console.log(result3.text);
 
 ## Provider Priority
 
-When `PROVIDER` environment variable is set, that provider is used directly.
+When `STT_PROVIDER` environment variable is set, that provider is used directly.
 
 Otherwise, the package selects providers in the following order:
 1. **Whisper.cpp** (if `WHISPER_CPP_MODEL_PATH` is set and file exists)
