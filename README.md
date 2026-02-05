@@ -1,6 +1,10 @@
 # stt-proxy
 A simple and lightweight proxy for seamless integration with multiple STT providers including Whisper.cpp and Cloudflare AI.
 
+> **Proxy Collection**: This package is part of a plug-and-play proxy collection designed for easy integration into your projects:
+> - [`@derogab/llm-proxy`](https://github.com/derogab/llm-proxy) - LLM provider proxy
+> - [`@derogab/stt-proxy`](https://github.com/derogab/stt-proxy) - Speech-to-Text provider proxy (this package)
+
 ## Features
 
 - **Multi-provider support**: Switch between STT providers with environment variables.
