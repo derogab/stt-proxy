@@ -45,3 +45,55 @@ The package builds to three output formats:
 - `dist/cjs/` - CommonJS (for `require()`)
 - `dist/esm/` - ES Modules (for `import`)
 - `dist/types/` - TypeScript declarations
+
+## Conventional Commits
+
+This project follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification.
+
+### Format
+
+```
+<type>: <description>
+```
+
+### Types
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature or functionality |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `refactor` | Code change that neither fixes a bug nor adds a feature |
+| `test` | Adding or modifying tests |
+| `chore` | Maintenance tasks (dependencies, configs) |
+| `build` | Changes to build system or dependencies |
+| `perf` | Performance improvement |
+| `ci` | CI/CD configuration changes |
+
+### Examples
+
+```bash
+feat: add support for new STT provider
+fix: resolve audio buffer handling issue
+docs: update README with configuration examples
+refactor: simplify provider selection logic
+test: add unit tests for error handling
+chore: update dependencies
+```
+
+### Breaking Changes
+
+Add `!` after the type for breaking changes:
+
+```bash
+feat!: change API response format
+```
+
+## Proxy Collection
+
+This package is part of a family of plug-and-play proxy packages:
+
+- [`@derogab/llm-proxy`](https://github.com/derogab/llm-proxy) - LLM provider proxy
+- [`@derogab/stt-proxy`](https://github.com/derogab/stt-proxy) - Speech-to-Text provider proxy (this package)
+
+**Important**: Before implementing any changes, you MUST check the other projects in this family to see if similar changes have already been made. If so, follow the same structure, patterns, and specifications used there. This ensures consistency across all proxy packages in the long term.
