@@ -56,13 +56,13 @@
   },
   "homepage": "https://github.com/derogab/stt-proxy#readme",
   "dependencies": {
-    "dotenv": "16.5.0",
+    "dotenv": "17.4.2",
     "smart-whisper": "0.4.2"
   },
   "devDependencies": {
-    "@types/node": "^22.15.21",
-    "@vitest/coverage-v8": "^3.1.4",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
+    "@types/node": "22.15.21",
+    "@vitest/coverage-v8": "3.1.4",
+    "typescript": "5.8.3",
+    "vitest": "3.1.4"
   }
 }
