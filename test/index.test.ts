@@ -17,12 +17,12 @@ vi.mock('child_process', () => ({
 }));
 
 vi.mock('smart-whisper', () => ({
-  Whisper: vi.fn().mockImplementation(() => ({
-    transcribe: vi.fn().mockResolvedValue({
+  Whisper: class MockWhisper {
+    transcribe = vi.fn().mockResolvedValue({
       result: Promise.resolve([{ text: 'Hello, world!', from: 0, to: 1000 }]),
-    }),
-    free: vi.fn().mockResolvedValue(undefined),
-  })),
+    });
+    free = vi.fn().mockResolvedValue(undefined);
+  },
 }));
 
 // Mock global fetch for Cloudflare tests
