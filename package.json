@@ -1,6 +1,6 @@
 {
   "name": "@derogab/stt-proxy",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "A simple and lightweight proxy for seamless integration with multiple STT (Speech-to-Text) providers including Whisper.cpp",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -56,13 +56,13 @@
   },
   "homepage": "https://github.com/derogab/stt-proxy#readme",
   "dependencies": {
-    "dotenv": "16.5.0",
-    "smart-whisper": "0.4.2"
+    "dotenv": "17.4.2",
+    "smart-whisper": "0.8.1"
   },
   "devDependencies": {
-    "@types/node": "^22.15.21",
-    "@vitest/coverage-v8": "^3.1.4",
-    "typescript": "^5.8.3",
-    "vitest": "^3.1.4"
+    "@types/node": "20.19.42",
+    "@vitest/coverage-v8": "4.1.8",
+    "typescript": "6.0.3",
+    "vitest": "4.1.8"
   }
 }

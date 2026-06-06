@@ -143,6 +143,3 @@ test/models/
 
 # Test audio directory
 test/audio/
-
-# claude
-.claude/*.local.*
