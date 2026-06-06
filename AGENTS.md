@@ -36,8 +36,9 @@ This is a TypeScript npm package (`@derogab/stt-proxy`) that provides a unified 
 
 ### Provider Selection
 
-The `transcribe()` function automatically selects a provider based on environment variables in this priority order:
-1. **Whisper.cpp** - if `WHISPER_CPP_MODEL_PATH` is set
+The `transcribe()` function supports explicit provider selection via `STT_PROVIDER` (or `PROVIDER` as a fallback). When neither is set, providers are auto-detected in this priority order:
+1. **Whisper.cpp** - if `WHISPER_CPP_MODEL_PATH` is set and the model file exists
+2. **Cloudflare AI** - if `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_AUTH_KEY` are set
 
 ### Build Output
 
